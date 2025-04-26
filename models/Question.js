@@ -1,5 +1,16 @@
+/**
+ * Question.js - MongoDB Question Model
+ *
+ * Defines the Question schema with:
+ * - Strict validation rules
+ * - Custom pre-save hooks
+ * - Indexes for performance
+ * - Virtuals and transformations
+ */
+
 const mongoose = require('mongoose');
 
+// Answer sub-schema
 const answerSchema = new mongoose.Schema(
   {
     text: {
@@ -15,9 +26,10 @@ const answerSchema = new mongoose.Schema(
       required: [true, 'Explanation is required'],
     },
   },
-  { _id: true }
+  { _id: true } // Ensure answers get their own IDs
 );
 
+// Main Question schema
 const questionSchema = new mongoose.Schema(
   {
     questionId: {
@@ -40,6 +52,7 @@ const questionSchema = new mongoose.Schema(
       type: [answerSchema],
       validate: {
         validator: function (v) {
+          // Must have at least 2 answers with at least one correct
           return v.length >= 2 && v.some((a) => a.isCorrect);
         },
         message: 'Must have at least 2 answers with one correct',
@@ -58,7 +71,7 @@ const questionSchema = new mongoose.Schema(
       required: [true, 'Domain is required'],
     },
     image: {
-      type: mongoose.Schema.Types.Mixed,
+      type: mongoose.Schema.Types.Mixed, // Can be String or Array
       validate: {
         validator: function (v) {
           return (
@@ -68,16 +81,15 @@ const questionSchema = new mongoose.Schema(
             (Array.isArray(v) && v.every((img) => typeof img === 'string'))
           );
         },
-        message:
-          'Image must be a string, an array of strings, or null/undefined',
+        message: 'Image must be a string, array of strings, or null',
       },
     },
     reference: {
-      type: String, // Keep as String type
+      type: String,
       validate: {
         validator: function (v) {
           if (!v) return true;
-          // Allow both string and array during validation
+          // Handle both string and array input
           const urls = Array.isArray(v) ? v : v.split('\n\n');
           return urls.every((url) => /^https?:\/\/.+\..+/.test(url.trim()));
         },
@@ -86,42 +98,36 @@ const questionSchema = new mongoose.Schema(
     },
   },
   {
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+    toJSON: { virtuals: true }, // Include virtuals when converting to JSON
+    toObject: { virtuals: true }, // Include virtuals when converting to objects
   }
 );
 
-// Add the pre-save hook RIGHT BEFORE model compilation
+/**
+ * Pre-save hook to normalize reference format
+ * Converts array references to newline-separated strings
+ */
 questionSchema.pre('save', function (next) {
-  // Only process if reference exists and is an array
-  if (this.reference && Array.isArray(this.reference)) {
-    // Filter out any empty/null values and join with double newlines
-    this.reference = this.reference
-      .filter((url) => url && url.trim())
-      .join('\n\n');
-  }
-  // Convert string references to ensure consistent formatting
-  else if (typeof this.reference === 'string') {
-    this.reference = this.reference
-      .split('\n\n')
-      .map((url) => url.trim())
-      .filter((url) => url)
-      .join('\n\n');
+  if (this.reference) {
+    // Handle array input
+    if (Array.isArray(this.reference)) {
+      this.reference = this.reference
+        .filter((url) => url && url.trim()) // Remove empty
+        .join('\n\n'); // Convert to string
+    }
+    // Handle string input
+    else if (typeof this.reference === 'string') {
+      this.reference = this.reference
+        .split('\n\n')
+        .map((url) => url.trim())
+        .filter((url) => url)
+        .join('\n\n');
+    }
   }
   next();
 });
 
-// questionSchema.index({ questionId: 1 });
+// Create index on domain field for faster queries
 questionSchema.index({ domain: 1 });
-
-// Convert array references to newline-separated strings before saving
-questionSchema.pre('save', function (next) {
-  if (this.reference && Array.isArray(this.reference)) {
-    this.reference = this.reference
-      .filter((url) => url?.trim()) // Remove empty/null
-      .join('\n\n'); // Convert to string
-  }
-  next();
-});
 
 module.exports = mongoose.model('Question', questionSchema);

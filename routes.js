@@ -1,9 +1,25 @@
+/**
+ * routes.js - API Route Definitions
+ *
+ * Contains all question-related API routes:
+ * - GET all questions
+ * - GET single question by ID or questionId
+ *
+ * Features:
+ * - Flexible question lookup (by MongoDB _id or questionId)
+ * - Reference fallback logic
+ * - Comprehensive error handling
+ */
+
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Question = require('./models/Question');
 
-// GET all questions
+/**
+ * GET /api/questions
+ * Returns all questions sorted by questionId
+ */
 router.get('/', async (req, res) => {
   try {
     const questions = await Question.find().sort({ questionId: 1 });
@@ -22,19 +38,26 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET single question
+/**
+ * GET /api/questions/:id
+ * Returns a single question by:
+ * - MongoDB _id
+ * - questionId (case-insensitive)
+ *
+ * Also attempts to find reference from other versions if missing
+ */
 router.get('/:id', async (req, res) => {
   try {
     let question;
 
-    // Try by MongoDB ID first
+    // First try to find by MongoDB ID
     if (mongoose.Types.ObjectId.isValid(req.params.id)) {
       question = await Question.findById(req.params.id)
-        .select('+reference')
-        .lean();
+        .select('+reference') // Explicitly include reference
+        .lean(); // Return plain JS object
     }
 
-    // If not found by ID, try by questionId
+    // If not found by ID, try by questionId (case-insensitive)
     if (!question) {
       question = await Question.findOne({
         questionId: { $regex: new RegExp(`^${req.params.id}$`, 'i') },
@@ -43,6 +66,7 @@ router.get('/:id', async (req, res) => {
         .lean();
     }
 
+    // Return 404 if question not found
     if (!question) {
       return res.status(404).json({
         success: false,
@@ -50,7 +74,7 @@ router.get('/:id', async (req, res) => {
       });
     }
 
-    // If reference is empty, try to find it from another version
+    // If reference is missing, try to find it from another version
     if (!question.reference) {
       const referenceQuestion = await Question.findOne({
         questionId: question.questionId,
@@ -76,5 +100,4 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Export the router directly
 module.exports = router;
