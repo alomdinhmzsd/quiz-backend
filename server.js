@@ -25,6 +25,7 @@ const allowedOrigins = [
   'https://quiz.padmin-awslabs.link', // Production
   'http://localhost:5173', // Vite dev server
   'http://localhost:4005', // Create React App fallback
+  'https://dashing-kitten-457dd1.netlify.app', // Add this line
 ];
 
 // CORS middleware configuration
