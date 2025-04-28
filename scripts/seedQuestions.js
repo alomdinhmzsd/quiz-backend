@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const Question = require('../models/Question');
 
-const filePath = path.join(__dirname, '../../questions.json');
+const filePath = path.join(__dirname, '../../questions-220.json');
 const rawData = fs.readFileSync(filePath, 'utf-8');
 const questions = JSON.parse(rawData);
 
