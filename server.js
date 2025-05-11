@@ -25,6 +25,7 @@ const allowedOrigins = [
   'https://quiz.padmin-awslabs.link', // Production
   'http://localhost:5173', // Vite dev server
   'http://localhost:4005', // Create React App fallback
+  'http://localhost:4006', // ✅ <--- Add this line
   'https://dashing-kitten-457dd1.netlify.app', // Add this line
 ];
 
@@ -106,11 +107,11 @@ app.use((err, req, res, next) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 5003;
+const PORT = process.env.PORT || 5004;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🔗 MongoDB URI: ${process.env.MONGODB_URI}`);
   console.log(
-    `🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:4005'}`
+    `🌐 Frontend URL: ${process.env.FRONTEND_URL || 'http://localhost:4006'}`
   );
 });
